@@ -15,16 +15,19 @@ FileReference >> gtDocAssembleActionFor: anAction [
 { #category : #'*GtDocassemble' }
 FileReference >> gtDocAssembleFor: aView [
 	<gtView>
-	| aYamlView |
-	(self parent basename = 'questions' "or: [self withParents allButFirst anySatisfy: #isDocAssembleFolder]")
-		ifFalse: [ ^ aView empty ].
+	| aYamlView sections |
+	self flag: #TODO.	"Clarify if all yml files are under 'questions' folder, if not use more complex logic."
+	self parent basename = 'questions' ifFalse: [ ^ aView empty ].	"or: [self withParents allButFirst anySatisfy: #isDocAssembleFolder]"
 	aYamlView := (YAMLParser parse: self contents) object.
+	sections := #('include' 'imports' 'metadata' 'code' 'question' 'objects' 'features' 'sections' 'attachment')
+			collect: [ :each | each -> (aYamlView select: [ :aDocument | aDocument keys includes: each ]) ].
+	self flag: #BUG."YAML parser seems to have some issues?!?"
+	(sections detect: [ :each | each key = 'code' ]) value 
+		do: [ :each | each at: 'code' put: (GtDocassembleCodeDocument withCode: (each at: 'code')) ].
 	^ aView forward
 		title: 'Docassemble Yaml';
 		priority: 1;
-		object: [ (#('include' 'imports' 'metadata' 'code' 'question' 'objects' 'features' 'sections' 'attachment')
-				collect: [ :each | each -> (aYamlView select: [ :aDocument | aDocument keys includes: each ]) ])
-				asDictionary ]
+		object: [ sections asDictionary ]
 ]
 
 { #category : #'*GtDocassemble' }
