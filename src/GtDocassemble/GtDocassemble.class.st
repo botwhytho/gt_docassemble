@@ -13,6 +13,17 @@ GtDocassemble class >> inFolder: aFileReference [
 ]
 
 { #category : #accessing }
+GtDocassemble >> find: aDependency [
+	| newString result |
+	newString := (':' split: aDependency) first copyReplaceAll: '.' with: '-'.
+	result := (STONJSON
+			fromString: (ZnClient new get: 'https://api.github.com/search/repositories?q=' , newString))
+			at: 'items'.
+	^ (result select: [ :each | (each at: 'name') = newString ]) first
+		at: 'clone_url'
+]
+
+{ #category : #accessing }
 GtDocassemble >> folder [
 	^ folder
 ]
@@ -42,7 +53,7 @@ GtDocassemble >> gtDependenciesFor: aView [
 							collect: [ :aDependency | 
 								anAssociation key parent / aDependency
 									ifExists: [ :found | found ]
-									ifAbsent: [ aDependency ] ]) ])
+									ifAbsent: [ self find: aDependency ] ]) ])
 			select: [ :anAssociation | anAssociation value isNotEmpty ].
 
 	^ aView mondrian
